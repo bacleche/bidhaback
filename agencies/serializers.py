@@ -7,6 +7,7 @@ class AgencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Agency
         fields = '__all__'
+        read_only_fields = ['owner']
     def get_agents_count(self, obj):
         return obj.agents.filter(is_active=True).count()
 

@@ -4,5 +4,5 @@ from . import views
 
 router = DefaultRouter()
 router.register('agencies', views.AgencyViewSet)
-router.register('agents', views.AgentViewSet)
+router.register('agents', views.AgentViewSet, basename='agent')
 urlpatterns = [path('', include(router.urls))]

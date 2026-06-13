@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'properties',
     'clients',
     'transactions',
+    'interactions',
 ]
 
 MIDDLEWARE = [

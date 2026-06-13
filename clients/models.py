@@ -5,7 +5,7 @@ from agencies.models import Agency
 class Client(models.Model):
     TYPE_CHOICES = [('individual','Particulier'),('company','Entreprise')]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile', null=True, blank=True)
-    agency = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='clients')
+    agency = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='clients', null=True, blank=True)
     client_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='individual')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)

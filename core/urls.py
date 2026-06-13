@@ -8,4 +8,5 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view()),
     path('auth/logout/', views.LogoutView.as_view()),
     path('auth/profile/', views.ProfileView.as_view()),
+    path('client-stats/', views.ClientStatsView.as_view(), name='client-stats'),
 ]
