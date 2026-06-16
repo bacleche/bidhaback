@@ -23,12 +23,21 @@ class AgencySerializer(serializers.ModelSerializer):
     def get_reviews_count(self, obj):
         return obj.reviews.count()
 
+# serializers.py
 class AgentSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    agency_name = serializers.CharField(source='agency.name', read_only=True)
+    # On rend 'user' accessible en écriture pour le POST
+    user = UserSerializer(required=True) 
+
     class Meta:
         model = Agent
         fields = '__all__'
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        # Création de l'utilisateur (assurez-vous que UserSerializer gère le set_password)
+        user = UserSerializer.create(UserSerializer(), validated_data=user_data)
+        agent = Agent.objects.create(user=user, **validated_data)
+        return agent
 
 class AgencyReviewSerializer(serializers.ModelSerializer):
     client_name = serializers.SerializerMethodField()
