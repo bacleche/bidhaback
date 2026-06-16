@@ -4,12 +4,15 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'bidhaa-secret-key-change-in-production-2024'
 DEBUG = True
-ALLOWED_HOSTS = [
     
-    'https://bidhaback-production.up.railway.app/', 
-    'https://bidhafront.vercel.app'
-
+    # SUPPRIMEZ LES "https://" ET LES SLASHES !
+ALLOWED_HOSTS = [
+    'bidhaback-production.up.railway.app', 
+    'bidhafront.vercel.app',
+    'localhost',
+    '127.0.0.1'
 ]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
