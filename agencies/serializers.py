@@ -35,34 +35,31 @@ class AgentSerializer(serializers.ModelSerializer):
         read_only_fields = ['agency', 'employee_id']
 
     def create(self, validated_data):
-        request = self.context.get('request')
-        user_data = validated_data.pop('user')
-        
-        # 1. Créer l'utilisateur
-        password = user_data.pop('password', 'Pass1234!')
-        user = User.objects.create_user(**user_data)
-        user.set_password(password)
-        user.save()
+        try:
+            request = self.context.get('request')
+            user_data = validated_data.pop('user')
+            
+            # Création utilisateur
+            from core.models import User
+            user = User.objects.create_user(**user_data)
+            
+            # Récupération agence (On force l'agence du propriétaire connecté)
+            agency = request.user.owned_agencies.first()
+            if not agency:
+                raise Exception("L'utilisateur connecté ne possède aucune agence.")
 
-        # 2. Récupérer l'agence du propriétaire connecté
-        # On cherche l'agence dont l'utilisateur connecté est le propriétaire
-        agency = Agency.objects.filter(owner=request.user).first()
-        if not agency:
-            raise serializers.ValidationError({"error": "Vous n'êtes associé à aucune agence."})
-
-        # 3. Générer un employee_id unique
-        employee_id = f"AGENT-{uuid.uuid4().hex[:8].upper()}"
-
-        # 4. Créer l'agent
-        agent = Agent.objects.create(
-            user=user, 
-            agency=agency, 
-            employee_id=employee_id, 
-            **validated_data
-        )
-        return agent
-
-
+            # Création agent
+            agent = Agent.objects.create(
+                user=user,
+                agency=agency,
+                employee_id=f"AG-{uuid.uuid4().hex[:6].upper()}",
+                **validated_data
+            )
+            return agent
+            
+        except Exception as e:
+            # CECI VA VOUS DIRE EXACTEMENT CE QUI BLOQUE
+            raise serializers.ValidationError({"detail": str(e)})
 
 class AgencyReviewSerializer(serializers.ModelSerializer):
     client_name = serializers.SerializerMethodField()
