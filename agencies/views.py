@@ -134,16 +134,59 @@ class AgentViewSet(viewsets.ModelViewSet):
             return Agent.objects.filter(agency=agency, is_active=True)
         return Agent.objects.none()
 
+    # def create(self, request, *args, **kwargs):
+    #     user = request.user
+
+    #     # Déterminer l'agence cible
+    #     if user.role == 'agency_owner':
+    #         agency = Agency.objects.filter(owner=user, is_active=True).first()
+    #         if not agency:
+    #             return Response({'detail': 'Vous n\'avez pas d\'agence active.'}, status=400)
+    #     elif user.role == 'admin':
+    #         agency_id = request.data.get('agency')
+    #         if not agency_id:
+    #             return Response({'detail': 'agency requis pour admin.'}, status=400)
+    #         agency = Agency.objects.filter(id=agency_id, is_active=True).first()
+    #         if not agency:
+    #             return Response({'detail': 'Agence introuvable.'}, status=404)
+    #     else:
+    #         return Response({'detail': 'Non autorisé.'}, status=403)
+
+    #     data = request.data
+    #     # Créer le User avec rôle agent
+    #     agent_user = User.objects.create_user(
+    #         username=data.get('username'),
+    #         email=data.get('email', ''),
+    #         first_name=data.get('first_name', ''),
+    #         last_name=data.get('last_name', ''),
+    #         password=data.get('password'),
+    #         phone=data.get('phone', ''),
+    #         role='agent',
+    #     )
+
+    #     agent = Agent.objects.create(
+    #         user=agent_user,
+    #         agency=agency,
+    #         employee_id=data.get('employee_id', f'AGT-{agent_user.id}'),
+    #         specialization=data.get('specialization', ''),
+    #         commission_rate=data.get('commission_rate', 5.00),
+    #     )
+
+    #     return Response(AgentSerializer(agent).data, status=201)
+
     def create(self, request, *args, **kwargs):
         user = request.user
+        data = request.data
 
-        # Déterminer l'agence cible
+        # Supporter les deux formats : imbriqué { user: {...} } ou à plat
+        user_data = data.get('user', data)  # si 'user' existe, l'utilise, sinon data entier
+
         if user.role == 'agency_owner':
             agency = Agency.objects.filter(owner=user, is_active=True).first()
             if not agency:
                 return Response({'detail': 'Vous n\'avez pas d\'agence active.'}, status=400)
         elif user.role == 'admin':
-            agency_id = request.data.get('agency')
+            agency_id = data.get('agency')
             if not agency_id:
                 return Response({'detail': 'agency requis pour admin.'}, status=400)
             agency = Agency.objects.filter(id=agency_id, is_active=True).first()
@@ -152,22 +195,23 @@ class AgentViewSet(viewsets.ModelViewSet):
         else:
             return Response({'detail': 'Non autorisé.'}, status=403)
 
-        data = request.data
-        # Créer le User avec rôle agent
+        email = user_data.get('email', '')
+        
         agent_user = User.objects.create_user(
-            username=data.get('username'),
-            email=data.get('email', ''),
-            first_name=data.get('first_name', ''),
-            last_name=data.get('last_name', ''),
-            password=data.get('password'),
-            phone=data.get('phone', ''),
+            username=email,  # email comme username par défaut
+            email=email,
+            first_name=user_data.get('first_name', ''),
+            last_name=user_data.get('last_name', ''),
+            password=user_data.get('password'),
+            phone=user_data.get('phone', ''),
             role='agent',
         )
 
+        import uuid
         agent = Agent.objects.create(
             user=agent_user,
             agency=agency,
-            employee_id=data.get('employee_id', f'AGT-{agent_user.id}'),
+            employee_id=f'AGT-{uuid.uuid4().hex[:6].upper()}',
             specialization=data.get('specialization', ''),
             commission_rate=data.get('commission_rate', 5.00),
         )
