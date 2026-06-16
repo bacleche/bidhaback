@@ -11,6 +11,13 @@ def debug_cloudinary(request):
         'api_key': os.environ.get('CLOUDINARY_API_KEY', 'NON DÉFINI'),
         'has_secret': bool(os.environ.get('CLOUDINARY_API_SECRET')),
     })
+
+def debug_env(request):
+    return JsonResponse({
+        'CLOUDINARY_CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', 'MANQUANT'),
+        'CLOUDINARY_API_KEY': os.environ.get('CLOUDINARY_API_KEY', 'MANQUANT'),
+        'HAS_SECRET': bool(os.environ.get('CLOUDINARY_API_SECRET')),
+    })
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('core.urls')),
@@ -21,5 +28,6 @@ urlpatterns = [
     path('api/', include('interactions.urls')),
 
     path('debug-cloudinary/', debug_cloudinary),
+    path('debug-env/', debug_env),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
