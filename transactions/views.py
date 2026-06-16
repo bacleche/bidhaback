@@ -11,7 +11,6 @@ from .models import Transaction, Contract
 from .serializers import TransactionSerializer, ContractSerializer
 from agencies.views import get_user_agency
 from agencies.models import Agent
-from core.models import create_notification
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
