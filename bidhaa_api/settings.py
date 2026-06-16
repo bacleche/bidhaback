@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'clients',
     'transactions',
     'interactions',
+    'cloudinary', 
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
