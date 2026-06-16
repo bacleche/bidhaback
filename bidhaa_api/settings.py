@@ -3,11 +3,11 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'bidhaa-secret-key-change-in-production-2024'
-DEBUG = True
+DEBUG = False
     
     # SUPPRIMEZ LES "https://" ET LES SLASHES !
 ALLOWED_HOSTS = [
-    'bidhaback-production.up.railway.app', 
+    'bidhaback-production.up.railway.app',
     'bidhafront.vercel.app',
     'localhost',
     '127.0.0.1'
