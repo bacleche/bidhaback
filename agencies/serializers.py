@@ -23,35 +23,47 @@ class AgencySerializer(serializers.ModelSerializer):
     def get_reviews_count(self, obj):
         return obj.reviews.count()
 
-# serializers.py
+
 class AgentSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
 
     class Meta:
         model = Agent
         fields = '__all__'
+        # Ces champs sont obligatoires en BDD mais générés ici, 
+        # donc on les marque comme read_only pour le serializer
+        read_only_fields = ['agency', 'employee_id']
 
     def create(self, validated_data):
-        # 1. Extraire les données
+        request = self.context.get('request')
         user_data = validated_data.pop('user')
         
-        # 2. Créer l'utilisateur manuellement pour éviter l'erreur de Serializer imbriqué
-        from core.models import User
-        password = user_data.pop('password', 'defaultpassword123')
+        # 1. Créer l'utilisateur
+        password = user_data.pop('password', 'Pass1234!')
         user = User.objects.create_user(**user_data)
         user.set_password(password)
         user.save()
 
-        # 3. Récupérer l'agence via l'utilisateur qui fait la requête
-        request = self.context.get('request')
-        # On suppose que l'owner a une relation 'agency'
-        agency = request.user.agency_owner_profile.agency 
-        
+        # 2. Récupérer l'agence du propriétaire connecté
+        # On cherche l'agence dont l'utilisateur connecté est le propriétaire
+        agency = Agency.objects.filter(owner=request.user).first()
+        if not agency:
+            raise serializers.ValidationError({"error": "Vous n'êtes associé à aucune agence."})
+
+        # 3. Générer un employee_id unique
+        employee_id = f"AGENT-{uuid.uuid4().hex[:8].upper()}"
+
         # 4. Créer l'agent
-        agent = Agent.objects.create(user=user, agency=agency, **validated_data)
+        agent = Agent.objects.create(
+            user=user, 
+            agency=agency, 
+            employee_id=employee_id, 
+            **validated_data
+        )
         return agent
 
-        
+
+
 class AgencyReviewSerializer(serializers.ModelSerializer):
     client_name = serializers.SerializerMethodField()
 
