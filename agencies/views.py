@@ -29,6 +29,54 @@ class AgencyViewSet(viewsets.ModelViewSet):
     search_fields = ['name','city']
     filterset_fields = ['city','is_active']
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def add_review(self, request, pk=None):
+        agency = self.get_object()
+        user = request.user
+        if user.role != 'client':
+            return Response({'detail': 'Seuls les clients connectés peuvent laisser un avis.'}, status=403)
+        
+        stars = request.data.get('stars')
+        comment = request.data.get('comment', '').strip()
+        
+        if not stars:
+            return Response({'detail': 'Le nombre d\'étoiles est requis.'}, status=400)
+            
+        try:
+            stars = int(stars)
+            if stars < 1 or stars > 5:
+                raise ValueError()
+        except ValueError:
+            return Response({'detail': 'Le nombre d\'étoiles doit être compris entre 1 et 5.'}, status=400)
+            
+        from .models import AgencyReview
+        from .serializers import AgencyReviewSerializer
+        from core.models import create_notification
+        
+        review, created = AgencyReview.objects.update_or_create(
+            agency=agency,
+            client=user,
+            defaults={'stars': stars, 'comment': comment}
+        )
+        
+        # Envoyer une notification au propriétaire de l'agence
+        create_notification(
+            user=agency.owner,
+            title="Nouvel avis reçu",
+            message=f"Le client {user.get_full_name() or user.username} a attribué {stars} étoiles à votre agence.",
+            category="complaint",
+            related_id=review.id
+        )
+        
+        return Response(AgencyReviewSerializer(review).data, status=201 if created else 200)
+
+    @action(detail=True, methods=['get'])
+    def reviews(self, request, pk=None):
+        agency = self.get_object()
+        from .serializers import AgencyReviewSerializer
+        reviews = agency.reviews.all()
+        return Response(AgencyReviewSerializer(reviews, many=True).data)
+
     @action(detail=False, methods=['get', 'post'], permission_classes=[permissions.IsAuthenticated])
     def mine(self, request):
         user = request.user

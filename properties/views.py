@@ -106,6 +106,26 @@ class PropertyViewSet(viewsets.ModelViewSet):
         property_obj.status = 'reserved'
         property_obj.save(update_fields=['status'])
 
+        from core.models import create_notification
+        
+        # Notifier l'agency owner
+        create_notification(
+            user=property_obj.agency.owner,
+            title="Nouvelle demande d'acquisition",
+            message=f"Le client {user.get_full_name() or user.username} a initié une demande d'acquisition pour le bien '{property_obj.title}'.",
+            category="transaction",
+            related_id=transaction.id
+        )
+        
+        # Notifier le client
+        create_notification(
+            user=user,
+            title="Demande d'acquisition enregistrée",
+            message=f"Votre demande pour le bien '{property_obj.title}' a été enregistrée. Le contrat préliminaire {contract.contract_number} est en cours de préparation.",
+            category="contract",
+            related_id=contract.id
+        )
+
         return Response({
             'message': 'Votre demande d\'acquisition a été enregistrée avec succès. La transaction et le contrat brouillon ont été générés.',
             'transaction_id': transaction.id,

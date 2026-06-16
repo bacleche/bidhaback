@@ -8,6 +8,18 @@ from agencies.models import Agency
 from properties.models import Property
 from transactions.models import Contract
 from properties.serializers import PropertySerializer
+from .serializers import ClientUserSerializer
+from rest_framework import generics, permissions, filters  # ← ajoute filters ici
+from core import models
+
+class ClientUserListView(generics.ListAPIView):
+    serializer_class = ClientUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['first_name', 'last_name', 'email', 'phone', 'username']
+
+    def get_queryset(self):
+        return User.objects.filter(role='client').order_by('first_name', 'last_name')
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -50,3 +62,32 @@ class ClientStatsView(APIView):
             'signed_contracts_count': signed_contracts.count(),
             'signed_properties': PropertySerializer(signed_properties, many=True).data
         })
+
+
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from .models import Notification
+from .serializers import NotificationSerializer
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        self.get_queryset().filter(is_read=False).update(is_read=True)
+        return Response({'status': 'ok'})
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        notif = self.get_object()
+        notif.is_read = True
+        notif.save(update_fields=['is_read'])
+        return Response({'status': 'ok'})
+

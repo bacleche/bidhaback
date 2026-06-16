@@ -1,12 +1,11 @@
 from django.shortcuts import render
-
-# Create your views here.
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import ContactRequest, Message, VisitRequest, Complaint
 from .serializers import (ContactRequestSerializer, MessageSerializer,
                            VisitRequestSerializer, ComplaintSerializer)
+from core.models import create_notification
 
 
 class ContactRequestViewSet(viewsets.ModelViewSet):
@@ -46,6 +45,28 @@ class ContactRequestViewSet(viewsets.ModelViewSet):
             sender=request.user,
             content=contact.message,
         )
+
+        client_name = request.user.get_full_name() or request.user.username
+
+        # Notifier l'agent
+        if prop.agent:
+            create_notification(
+                user=prop.agent.user,
+                title="Nouvelle demande de contact",
+                message=f"Le client {client_name} souhaite entrer en contact avec vous pour le bien '{prop.title}'.",
+                category="contact",
+                related_id=contact.id
+            )
+
+        # Notifier le propriétaire de l'agence
+        create_notification(
+            user=prop.agency.owner,
+            title="Nouveau contact client (Agence)",
+            message=f"Le client {client_name} a contacté l'agent {prop.agent.user.get_full_name() if prop.agent else 'N/A'} pour le bien '{prop.title}'.",
+            category="contact",
+            related_id=contact.id
+        )
+
         return Response(ContactRequestSerializer(contact).data, status=201)
 
     @action(detail=True, methods=['post'])
@@ -61,6 +82,36 @@ class ContactRequestViewSet(viewsets.ModelViewSet):
         )
         contact.status = 'replied'
         contact.save(update_fields=['status'])
+
+        # Notifier la partie adverse
+        sender_name = request.user.get_full_name() or request.user.username
+        if request.user == contact.client:
+            # Le client a répondu -> notifier l'agent et le propriétaire de l'agence
+            if contact.agent:
+                create_notification(
+                    user=contact.agent.user,
+                    title="Nouveau message client",
+                    message=f"{sender_name} : {content[:60]}...",
+                    category="contact",
+                    related_id=contact.id
+                )
+            create_notification(
+                user=contact.property.agency.owner,
+                title="Message sur fil de contact (Agence)",
+                message=f"Le client {sender_name} a écrit dans la discussion pour le bien '{contact.property.title}'.",
+                category="contact",
+                related_id=contact.id
+            )
+        else:
+            # L'agent ou l'owner a répondu -> notifier le client
+            create_notification(
+                user=contact.client,
+                title="Nouveau message de l'agence",
+                message=f"{sender_name} : {content[:60]}...",
+                category="contact",
+                related_id=contact.id
+            )
+
         return Response(MessageSerializer(msg).data, status=201)
 
     @action(detail=True, methods=['patch'])
@@ -104,6 +155,27 @@ class VisitRequestViewSet(viewsets.ModelViewSet):
             requested_date=request.data.get('requested_date'),
             notes=request.data.get('notes', ''),
         )
+
+        client_name = request.user.get_full_name() or request.user.username
+
+        # Notifier l'agent
+        if prop.agent:
+            create_notification(
+                user=prop.agent.user,
+                title="Nouvelle demande de visite",
+                message=f"Le client {client_name} a demandé une visite pour le bien '{prop.title}'.",
+                category="visit",
+                related_id=visit.id
+            )
+        # Notifier le propriétaire de l'agence
+        create_notification(
+            user=prop.agency.owner,
+            title="Nouvelle demande de visite (Agence)",
+            message=f"Le client {client_name} a planifié une visite pour le bien '{prop.title}'.",
+            category="visit",
+            related_id=visit.id
+        )
+
         return Response(VisitRequestSerializer(visit).data, status=201)
 
     @action(detail=True, methods=['patch'])
@@ -123,6 +195,22 @@ class VisitRequestViewSet(viewsets.ModelViewSet):
         if new_status == 'rescheduled':
             visit.rescheduled_date = request.data.get('rescheduled_date')
         visit.save()
+
+        status_label = {
+            'accepted': 'acceptée',
+            'rescheduled': 'reprogrammée',
+            'rejected': 'rejetée'
+        }.get(new_status, new_status)
+        
+        # Notifier le client de la décision
+        create_notification(
+            user=visit.client,
+            title=f"Demande de visite {status_label}",
+            message=f"Votre demande de visite pour le bien '{visit.property.title}' a été {status_label} par l'agent.",
+            category="visit",
+            related_id=visit.id
+        )
+
         return Response(VisitRequestSerializer(visit).data)
 
 
@@ -162,6 +250,17 @@ class ComplaintViewSet(viewsets.ModelViewSet):
             subject=request.data.get('subject', ''),
             description=request.data.get('description', ''),
         )
+
+        # Notifier l'agency owner
+        if complaint.agency:
+            create_notification(
+                user=complaint.agency.owner,
+                title="Nouveau signalement reçu",
+                message=f"Le client {request.user.get_full_name() or request.user.username} a soumis une plainte : '{complaint.subject}'.",
+                category="complaint",
+                related_id=complaint.id
+            )
+
         return Response(ComplaintSerializer(complaint).data, status=201)
 
     @action(detail=True, methods=['patch'])
@@ -174,4 +273,14 @@ class ComplaintViewSet(viewsets.ModelViewSet):
         complaint.owner_response = request.data.get('owner_response', '')
         complaint.status = request.data.get('status', complaint.status)
         complaint.save()
+
+        # Notifier le client de la réponse
+        create_notification(
+            user=complaint.client,
+            title="Réponse à votre plainte",
+            message=f"L'agence a répondu à votre signalement : '{complaint.subject}'. Nouveau statut : {complaint.get_status_display()}.",
+            category="complaint",
+            related_id=complaint.id
+        )
+
         return Response(ComplaintSerializer(complaint).data)

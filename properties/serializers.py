@@ -20,6 +20,8 @@ class PropertySerializer(serializers.ModelSerializer):
     images = PropertyImageSerializer(many=True, read_only=True)
     agency_name = serializers.CharField(source='agency.name', read_only=True)
     agent_name = serializers.SerializerMethodField()
+    is_contacted = serializers.SerializerMethodField()
+    has_pending_visit = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
@@ -27,3 +29,17 @@ class PropertySerializer(serializers.ModelSerializer):
 
     def get_agent_name(self, obj):
         return obj.agent.user.get_full_name() if obj.agent else None
+
+    def get_is_contacted(self, obj):
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user and user.is_authenticated and user.role == 'client':
+            from interactions.models import ContactRequest
+            return ContactRequest.objects.filter(property=obj, client=user).exists()
+        return False
+
+    def get_has_pending_visit(self, obj):
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user and user.is_authenticated and user.role == 'client':
+            from interactions.models import VisitRequest
+            return VisitRequest.objects.filter(property=obj, client=user, status='pending').exists()
+        return False

@@ -38,3 +38,20 @@ class Agent(models.Model):
     class Meta:
         verbose_name = "Agent"
         ordering = ['-joined_at']
+
+
+class AgencyReview(models.Model):
+    agency = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='reviews')
+    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='agency_reviews')
+    stars = models.PositiveSmallIntegerField(default=5)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Avis Agence"
+        verbose_name_plural = "Avis Agences"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.stars} étoiles pour {self.agency.name} par {self.client}"
+
