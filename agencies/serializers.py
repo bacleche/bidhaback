@@ -25,18 +25,30 @@ class AgencySerializer(serializers.ModelSerializer):
 
 # serializers.py
 class AgentSerializer(serializers.ModelSerializer):
-    # On rend 'user' accessible en écriture pour le POST
-    user = UserSerializer(required=True) 
+    user = UserSerializer(required=True)
 
     class Meta:
         model = Agent
         fields = '__all__'
 
     def create(self, validated_data):
+        # 1. Extraire les données utilisateur
         user_data = validated_data.pop('user')
-        # Création de l'utilisateur (assurez-vous que UserSerializer gère le set_password)
-        user = UserSerializer.create(UserSerializer(), validated_data=user_data)
-        agent = Agent.objects.create(user=user, **validated_data)
+        password = user_data.pop('password', None)
+        
+        # 2. Créer l'utilisateur via le modèle pour garantir le hachage
+        from core.models import User # Importez votre modèle User
+        user = User.objects.create_user(**user_data)
+        if password:
+            user.set_password(password)
+            user.save()
+            
+        # 3. Créer l'agent en associant l'utilisateur créé
+        # On récupère l'agence via le contexte (l'owner connecté)
+        request = self.context.get('request')
+        agency = getattr(request.user, 'owned_agency', None) # Adaptez selon votre modèle
+        
+        agent = Agent.objects.create(user=user, agency=agency, **validated_data)
         return agent
 
 class AgencyReviewSerializer(serializers.ModelSerializer):
