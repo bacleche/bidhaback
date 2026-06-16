@@ -32,25 +32,26 @@ class AgentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def create(self, validated_data):
-        # 1. Extraire les données utilisateur
+        # 1. Extraire les données
         user_data = validated_data.pop('user')
-        password = user_data.pop('password', None)
         
-        # 2. Créer l'utilisateur via le modèle pour garantir le hachage
-        from core.models import User # Importez votre modèle User
+        # 2. Créer l'utilisateur manuellement pour éviter l'erreur de Serializer imbriqué
+        from core.models import User
+        password = user_data.pop('password', 'defaultpassword123')
         user = User.objects.create_user(**user_data)
-        if password:
-            user.set_password(password)
-            user.save()
-            
-        # 3. Créer l'agent en associant l'utilisateur créé
-        # On récupère l'agence via le contexte (l'owner connecté)
+        user.set_password(password)
+        user.save()
+
+        # 3. Récupérer l'agence via l'utilisateur qui fait la requête
         request = self.context.get('request')
-        agency = getattr(request.user, 'owned_agency', None) # Adaptez selon votre modèle
+        # On suppose que l'owner a une relation 'agency'
+        agency = request.user.agency_owner_profile.agency 
         
+        # 4. Créer l'agent
         agent = Agent.objects.create(user=user, agency=agency, **validated_data)
         return agent
 
+        
 class AgencyReviewSerializer(serializers.ModelSerializer):
     client_name = serializers.SerializerMethodField()
 
