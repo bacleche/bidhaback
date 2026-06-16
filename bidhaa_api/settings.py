@@ -88,5 +88,14 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 12,
 }
 
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
 SIMPLE_JWT = {'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),'REFRESH_TOKEN_LIFETIME': timedelta(days=7)}
 AUTH_USER_MODEL = 'core.User'

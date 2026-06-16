@@ -10,8 +10,13 @@ class PropertyImageSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_image(self, obj):
-        request = self.context.get('request')
         if obj.image:
+            # Si c'est déjà une URL Cloudinary, on la retourne telle quelle
+            if obj.image.url.startswith('http'):
+                return obj.image.url
+            
+            # Sinon, on tente de construire l'URI
+            request = self.context.get('request')
             return request.build_absolute_uri(obj.image.url) if request else obj.image.url
         return None
 
