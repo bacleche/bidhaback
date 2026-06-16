@@ -23,11 +23,11 @@ class Notification(models.Model):
         ordering = ['-created_at']
 
 # LA FONCTION DOIT ÊTRE ICI, AU NIVEAU DU MODULE (PAS DANS LA CLASSE)
-    def create_notification(user, title, message, category, related_id=None):
-        return Notification.objects.create(
-            user=user, 
-            title=title, 
-            message=message, 
-            category=category, 
-            related_id=related_id
-        )
+def create_notification(user, title, message, category, related_id=None):
+    return Notification.objects.create(
+        user=user, 
+        title=title, 
+        message=message, 
+        category=category, 
+        related_id=related_id
+    )
