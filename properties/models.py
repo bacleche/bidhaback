@@ -46,12 +46,18 @@ class Property(models.Model):
         verbose_name_plural = "Biens Immobiliers"
         ordering = ['-created_at']
 
+from cloudinary_storage.storage import MediaCloudinaryStorage
+
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='properties/')
+    # ON FORCE LE STORAGE ICI
+    image = models.ImageField(upload_to='properties/', storage=MediaCloudinaryStorage())
     caption = models.CharField(max_length=200, blank=True)
     is_cover = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['order']
+
+    def __str__(self):
+        return f"Image de {self.property.title}"
