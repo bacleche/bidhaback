@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import timedelta
 import os
 
+import sys
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'bidhaa-secret-key-change-in-production-2024'
 DEBUG = False
@@ -95,6 +96,10 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
+print("--- DÉBUT VÉRIFICATION ---", file=sys.stderr)
+print(f"Cloudinary Name: {os.environ.get('CLOUDINARY_CLOUD_NAME')}", file=sys.stderr)
+print(f"Cloudinary Key: {os.environ.get('CLOUDINARY_API_KEY')}", file=sys.stderr)
+print("--- FIN VÉRIFICATION ---", file=sys.stderr)
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 SIMPLE_JWT = {'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),'REFRESH_TOKEN_LIFETIME': timedelta(days=7)}
