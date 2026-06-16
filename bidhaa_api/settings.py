@@ -1,17 +1,24 @@
 from pathlib import Path
 from datetime import timedelta
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'bidhaa-secret-key-change-in-production-2024'
 DEBUG = False
     
-    # SUPPRIMEZ LES "https://" ET LES SLASHES !
+
+
 ALLOWED_HOSTS = [
     'bidhaback-production.up.railway.app',
     'bidhafront.vercel.app',
     'localhost',
-    '127.0.0.1'
+    '127.0.0.1',
 ]
+
+# Ajoute le host Railway injecté dynamiquement s'il existe
+RAILWAY_PUBLIC_DOMAIN = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if RAILWAY_PUBLIC_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
 
 
 INSTALLED_APPS = [
