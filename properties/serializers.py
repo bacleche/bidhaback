@@ -3,19 +3,16 @@ from .models import Property, PropertyImage
 
 
 class PropertyImageSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()  # renomme le champ calculé
 
     class Meta:
         model = PropertyImage
-        fields = '__all__'
+        fields = '__all__'  # inclut le vrai champ 'image' (writable)
 
     def get_image(self, obj):
         if obj.image:
-            # Si c'est déjà une URL Cloudinary, on la retourne telle quelle
             if obj.image.url.startswith('http'):
                 return obj.image.url
-            
-            # Sinon, on tente de construire l'URI
             request = self.context.get('request')
             return request.build_absolute_uri(obj.image.url) if request else obj.image.url
         return None
